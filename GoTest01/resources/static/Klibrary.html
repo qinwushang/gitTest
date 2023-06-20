@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <!-- 页面meta -->
+
+    <meta charset="utf-8">
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>K-Library</title>
+
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport">
+
+    <!-- 引入样式 -->
+
+    <link rel="stylesheet" href="/static/plugins/elementui/index.css">
+
+    <link rel="stylesheet" href="/static/plugins/font-awesome/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+
+</head>
+
+<body class="hold-transition">
+
+<div id="app">
+
+    <div class="content-header">
+
+        <h1>K-library</h1>
+
+    </div>
+
+    <div class="app-container">
+
+        <div class="box">
+
+            <div class="filter-container">
+                <el-input placeholder="图书类别" v-model="pagination.type" style="width: 200px;" class="filter-item"></el-input>
+                <el-input placeholder="图书名称" v-model="pagination.name" style="width: 200px;" class="filter-item"></el-input>
+                <el-input placeholder="图书描述" v-model="pagination.description" style="width: 200px;" class="filter-item"></el-input>
+                <el-button @click="getByCondition()" class="dalfBut">查询</el-button>
+                <el-button type="primary" class="butT" @click="handleCreate()">新建</el-button>
+                <el-button type="primary" class="butT" @click="handleFeedback1() ">反馈</el-button>
+<!--                <el-button type="primary" class="butT" @click="handleReceiveFeedback()">查看反馈</el-button>-->
+            </div>
+
+            <el-table size="small" current-row-key="Id" :data="dataList" stripe highlight-current-row>
+
+                <el-table-column type="index" align="center" label="序号"></el-table-column>
+
+                <el-table-column prop="Type" label="图书类别" align="center"></el-table-column>
+
+                <el-table-column prop="Name" label="图书名称" align="center"></el-table-column>
+
+                <el-table-column prop="Description" label="描述" align="center"></el-table-column>
+
+                <el-table-column label="操作" align="center">
+
+                    <template slot-scope="scope">
+
+                        <el-button type="primary" size="mini" @click="handleUpdate(scope.row)">编辑</el-button>
+
+                        <el-button type="danger" size="mini" @click="handleDelete(scope.row)">删除</el-button>
+
+                        <el-button type="primary" size="mini" @click="handleSendBegin(scope.row)">获取</el-button>
+
+                        <el-button type="primary" size="mini" @click="downloadFilePre(scope.row)">下载</el-button>
+
+                    </template>
+
+                </el-table-column>
+
+            </el-table>
+
+            <!--分页组件-->
+            <div class="pagination-container">
+
+                <el-pagination
+                        class="pagiantion"
+
+                        @current-change="handleCurrentChange"
+
+                        :current-page="pagination.currentPage"
+
+                        :page-size="pagination.pageSize"
+
+                        layout="total, prev, pager, next, jumper"
+
+                        :total="pagination.total">
+
+                </el-pagination>
+
+            </div>
+
+            <!-- 新增标签弹层 -->
+
+            <div class="add-form">
+
+                <el-dialog title="新增图书" :visible.sync="dialogFormVisible">
+
+                    <el-form ref="dataAddForm" :model="formData" :rules="rules" label-position="right" label-width="100px">
+
+                        <el-row>
+
+                            <el-col :span="12">
+
+                                <el-form-item label="图书类别" prop="Type">
+
+                                    <el-input v-model="formData.Type" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                            <el-col :span="12">
+
+                                <el-form-item label="图书名称" prop="Name">
+
+                                    <el-input v-model="formData.Name" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                        </el-row>
+
+
+                        <el-row>
+
+                            <el-col :span="18">
+
+                                <el-form-item label="描述">
+
+                                    <el-input v-model="formData.Description" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                            <el-col :span="18">
+
+                                <el-form-item label="所在url">
+
+                                    <el-input v-model="formData.Url" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                        </el-row>
+
+                        <el-upload
+                                    v-model="formData.File" action :http-request="uploadFile" :limit="fileLimit"
+                                   :auto-upload="true" :file-list="fileList"
+                                   :before-upload="beforeUpload" :show-file-list="ture" :headers="headers">
+                        <el-button class="btn"><i class="el-icon-paperclip"></i>上传附件</el-button>
+
+                        </el-upload>
+
+
+
+                    </el-form>
+
+                    <div slot="footer" class="dialog-footer">
+
+                        <el-button @click="cancel()">取消</el-button>
+
+                        <el-button type="primary" @click="handleAdd()">确定</el-button>
+
+                    </div>
+
+                </el-dialog>
+
+            </div>
+
+            <!-- 编辑标签弹层 -->
+
+            <div class="add-form">
+
+                <el-dialog title="编辑检查项" :visible.sync="dialogFormVisible4Edit">
+
+                    <el-form ref="dataEditForm" :model="formData" :rules="rules" label-position="right" label-width="100px">
+
+                        <el-row>
+
+                            <el-col :span="12">
+
+                                <el-form-item label="图书类别" prop="Type">
+
+                                    <el-input v-model="formData.Type" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                            <el-col :span="12">
+
+                                <el-form-item label="图书名称" prop="Name">
+
+                                    <el-input v-model="formData.Name" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                        </el-row>
+
+                        <el-row>
+
+                            <el-col :span="18">
+
+                                <el-form-item label="描述">
+
+                                    <el-input v-model="formData.Description" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                            <el-col :span="18">
+
+                                <el-form-item label="所在url">
+
+                                    <el-input v-model="formData.Url" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                        </el-row>
+
+                    </el-form>
+
+                    <div slot="footer" class="dialog-footer">
+
+                        <el-button @click="cancel()">取消</el-button>
+
+                        <el-button type="primary" @click="handleEdit()">确定</el-button>
+
+                    </div>
+
+                </el-dialog>
+
+            </div>
+
+            <!-- 发送邮件标签弹层 -->
+            <div class="add-form">
+
+                <el-dialog title="发送检查项" :visible.sync="dialogFormVisible4Send">
+
+                    <el-form ref="dataSendForm" :model="formData" :rules="rules" label-position="right" label-width="100px">
+
+                        <el-row>
+
+                            <el-col :span="24">
+
+                                <el-form-item label="发送邮箱" prop="Email">
+
+                                    <el-input v-model="bookdata.Mailtoaddress" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                        </el-row>
+
+                    </el-form>
+
+                    <div slot="footer" class="dialog-footer">
+
+                        <el-button @click="cancel()">取消</el-button>
+
+                        <el-button type="primary" @click="handleSend()">确定</el-button>
+
+                    </div>
+
+                </el-dialog>
+
+            </div>
+
+            <!-- 反馈信息标签弹层 -->
+            <div class="add-form">
+
+                <el-dialog title="反馈检查项" :visible.sync="dialogFormVisible4FeedbackSend">
+
+                    <el-form ref="dataSendForm" :model="formData" :rules="rules" label-position="right" label-width="100px">
+
+                        <el-row>
+
+                            <el-col :span="24">
+
+                                <el-form-item label="反馈意见" prop="Feedback">
+
+                                    <el-input v-model="feedbackdata.Sendmsg" type="textarea"></el-input>
+
+                                </el-form-item>
+
+                            </el-col>
+
+                        </el-row>
+
+                    </el-form>
+
+                    <div slot="footer" class="dialog-footer">
+
+                        <el-button @click="cancel()">取消</el-button>
+
+                        <el-button type="primary" @click="handleFeedback()">确定</el-button>
+
+                    </div>
+
+                </el-dialog>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
+<!-- 引入组件库 -->
+
+<script src="/static/js/vue.js"></script>
+
+<script src="/static/plugins/elementui/index.js"></script>
+
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+
+<script src="/static/js/axios-0.18.0.js"></script>
+
+<script>
+    var vue = new Vue({
+        el: '#app',
+        data:{
+            dataList: [],//当前页要展示的列表数据
+            dialogFormVisible: false,//添加表单是否可见
+            dialogFormVisible4Edit:false,//编辑表单是否可见
+            dialogFormVisible4Send:false,
+            dialogFormVisible4FeedbackSend:false,
+            formData: {},//表单数据
+            bookdata:{},
+            feedbackdata : {},
+            fd:{},
+            rules: {//校验规则
+                Type: [{ required: true, message: '图书类别为必填项', trigger: 'blur' }],
+                Name: [{ required: true, message: '图书名称为必填项', trigger: 'blur' }],
+                Email:[{ required: true, message: '邮箱地址为必填项', trigger: 'blur' }],
+                // bookurl:[{ required: true, message: '邮箱地址为必填项', trigger: 'blur' }],
+
+            },
+            pagination: {//分页相关模型数据
+                currentPage: 1,//当前页码
+                pageSize:10,//每页显示的记录数
+                total:0,//总记录数
+                Type: "",
+                Name: "",
+                Description: ""
+            },
+            //上传后的文件列表
+            fileList: [],
+            // 允许的文件类型
+            fileType: [ "pdf", "doc", "docx", "xls", "xlsx","txt","png","jpg", "bmp", "jpeg"],
+            // 运行上传文件大小，单位 M
+            fileSize: 50,
+            // 附件数量限制
+            fileLimit: 5,
+            //请求头
+            headers: { "Content-Type": "multipart/from-data" }
+
+        },
+
+        //钩子函数，VUE对象初始化完成后自动执行
+        created() {
+            //调用查询全部数据的操作
+            this.getAll();
+        },
+
+        methods: {
+
+            //分页查询
+            getAll() {
+                //组织参数，拼接url请求地址
+                // console.log(this.pagination.type);
+                param = "?page="+this.pagination.currentPage;
+                param += "&size="+this.pagination.pageSize;
+                param += "&type="+this.pagination.type;
+                param +="&name="+this.pagination.name;
+                param +="&description="+this.pagination.description;
+                console.log(param);
+
+                //发送异步请求
+                axios.get("/books/"+param).then((res)=>{
+                    this.pagination.pageSize = res.data.data.size;
+                    this.pagination.currentPage = res.data.data.current;
+                    this.pagination.total = res.data.data.total;
+                    this.dataList = res.data.data.records;
+                });
+
+            },
+
+            //条件查询当作查询的一部分来处理
+            getByCondition() {
+                //组织参数，拼接url请求地址
+                // console.log(this.pagination.type);
+                param = "?page="+this.pagination.currentPage;
+                param += "&size="+this.pagination.pageSize;
+                param += "&type="+this.pagination.type;
+                param +="&name="+this.pagination.name;
+                param +="&description="+this.pagination.description;
+                console.log(param);
+
+                //发送异步请求
+                axios.get("/books/condition"+param).then((res)=>{
+                    this.pagination.pageSize = res.data.data.size;
+                    this.pagination.currentPage = res.data.data.current;
+                    this.pagination.total = res.data.data.total;
+                    this.dataList = res.data.data.records;
+                });
+
+            },
+
+
+            //上传文件之前
+            beforeUpload(file){
+                if (file.type !== "" || file.type != null || file.type !== undefined){
+                    //截取文件的后缀，判断文件类型
+                    const FileExt = file.name.replace(/.+\./, "").toLowerCase();
+                    //计算文件的大小
+                    const isLt5M = file.size / 1024 / 1024 < 50; //这里做文件大小限制
+                    //如果大于50M
+                    if (!isLt5M) {
+                        this.$showMessage('上传文件大小不能超过 50MB!');
+                        return false;
+                    }
+                    //如果文件类型不在允许上传的范围内
+                    if(this.fileType.includes(FileExt)){
+                        return true;
+                    }
+                    else {
+                        this.$message.error("上传文件格式不正确!");
+                        return false;
+                    }
+                }
+            },
+            uploadFile (file) {
+                // this.formData.set("file", file.file);
+                this.fd = new FormData()
+                // console.log(data1.get("file"));
+                const fileObj = file.file // 相当于input里取得的files
+                this.fd.append('file', fileObj) // 文件对象
+                console.log("文件包" + this.fd.get('file'));
+
+            },
+
+
+
+            //下载文件操作
+            async downloadFilePre(row) {
+                await axios.get("/books/" + row.Id).then((res) => {
+                    this.formData.name = res.data.data.Name;
+                    this.formData.url = res.data.data.Url;
+                })
+                this.downloadFileAfter()
+            },
+
+            downloadFileAfter() {
+                params = "?url=" + this.formData.url;
+                console.log(params)
+                window.open("http://127.0.0.1:8080/books/downloadfiles"+params)
+                // this.formData ={};
+                // axios.get("/downloadfiles"+ params);
+            },
+
+
+
+
+
+
+
+
+
+
+
+            handleFeedback1(){
+                this.dialogFormVisible4FeedbackSend = true;
+                    },
+            handleFeedback() {
+                feedbacksendparam = "?Msg=" + this.feedbackdata.Sendmsg;
+                feedbacksendparam += "&id="+ Math.random();
+                axios.post("/messages" + feedbacksendparam)
+                this.$message.success("反馈成功！");
+                this.dialogFormVisible4FeedbackSend =false;
+                this.feedbackdata = {}
+
+            },
+
+            // handleReceiveFeedback1(){
+            //     this.dialogFormVisible4FeedbackSend = true;
+            // },
+            handleReceiveFeedback() {
+                axios.get("/messages")
+                this.$message.success("已发送全部反馈至后台！");
+            },
+
+
+            //切换页码
+            handleCurrentChange(currentPage) {
+                //修改页码值为当前选中的页码值
+                this.pagination.currentPage = currentPage;
+                //执行查询
+                this.getAll();
+            },
+
+            //弹出添加窗口
+            handleCreate() {
+                this.dialogFormVisible = true;
+                this.resetForm();
+            },
+
+            //重置表单
+            resetForm() {
+                this.formData = {};
+                this.bookdata = {};
+            },
+
+            //添加
+            handleAdd () {
+                this.fd.append("name",this.formData.name)
+                this.fd.append("type",this.formData.type)
+                this.fd.append("description",this.formData.description)
+                this.fd.append("url",this.formData.url)
+                console.log(this.fd.keys());
+                // console.log(this.formData.get("file"));
+                axios.post("/books/bookadd",this.fd).then((res)=>{
+                    console.log(this.fd.values());
+                    //判断当前操作是否成功
+                    if(res.data.flag){
+                        //1.关闭弹层
+                        this.dialogFormVisible = false;
+                        this.$message.success(res.data.msg);
+                    }else{
+                        this.$message.error(res.data.msg);
+                    }
+                }).finally(()=>{
+                    //2.重新加载数据
+                    this.fileList = [];
+                    this.getAll();
+                });
+            },
+
+            handleSendBegin(row){
+                axios.get("/books/"+row.Id).then((res)=>{
+                    this.bookdata.Subject = res.data.data.Name;
+                    this.bookdata.Context = res.data.data.Description;
+                    this.bookdata.Url = res.data.data.Url;
+                });
+                this.dialogFormVisible4Send = true;
+            },
+
+            //发送书籍
+            handleSend () {
+
+                bookparam ="?to="+this.bookdata.Mailtoaddress;
+                bookparam +="&subject="+this.bookdata.Subject;
+                bookparam +="&context="+this.bookdata.Context;
+                bookparam +="&bookUrl="+this.bookdata.Url;
+
+                if (this.bookdata.Mailtoaddress == null || this.bookdata.Mailtoaddress.len === 0){
+                    this.$message.error("邮件不能为空，请重试！");
+
+                }
+                else {
+                    console.log(bookparam);
+
+                    axios.post("/mail" + bookparam);
+                    this.$message.success("获取成功，即将发至您的邮箱！");
+                    this.dialogFormVisible4Send = false;
+                    this.resetForm();
+                }
+            },
+
+            //取消
+            cancel(){
+                this.dialogFormVisible = false;
+                this.dialogFormVisible4Edit = false;
+                this.dialogFormVisible4Send = false;
+                this.dialogFormVisible4FeedbackSend =false;
+                this.fileList = [];
+                this.feedbackdata = {};
+                this.formData = {};
+                this.bookdata = {};
+                this.$message.info("当前操作取消");
+            },
+
+            // 删除
+            handleDelete(row) {
+                // console.log(row);
+                this.$confirm("此操作永久删除当前信息，是否继续？","提示",{type:"info"}).then(()=>{
+                    axios.delete("/books/"+row.Id).then((res)=>{
+                        if(res.data.flag){
+                            this.$message.success("删除成功");
+                        }else{
+                            this.$message.error("数据同步失败，自动刷新");
+                        }
+                    }).finally(()=>{
+                        //2.重新加载数据
+                        this.getAll();
+                    });
+                }).catch(()=>{
+                    this.$message.info("取消操作");
+                });
+            },
+
+            //弹出编辑窗口
+            handleUpdate(row) {
+                axios.get("/books/"+row.Id).then((res)=>{
+                    if(res.data.flag && res.data.data != null ){ //防止已经被删无法修改
+                        this.dialogFormVisible4Edit = true;
+                        this.formData = res.data.data;
+                    }else{
+                        this.$message.error("数据同步失败，自动刷新");
+                    }
+                }).finally(()=>{
+                    //2.重新加载数据
+                    this.getAll();
+                });
+            },
+
+            //修改
+            handleEdit() {
+                axios.put("/books",this.formData).then((res)=>{
+                    //判断当前操作是否成功
+                    if(res.data.flag){
+                        //1.关闭弹层
+                        this.dialogFormVisible4Edit = false;
+                        this.$message.success("修改成功");
+                    }else{
+                        this.$message.error("修改失败");
+                    }
+                }).finally(()=>{
+                    //2.重新加载数据
+                    this.getAll();
+                });
+            },
+
+
+
+        }
+    })
+
+</script>
+
+</html>
